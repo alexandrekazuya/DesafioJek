@@ -18,3 +18,7 @@ class Reservation(models.Model):
 
     table = models.ManyToManyField(Table)
     restaurant = models.ForeignKey(Restaurant, on_delete=models.CASCADE)
+
+class AdminUser(models.Model):
+    name = models.CharField(null=False, max_length=20)
+    password = models.CharField(null=False, max_length=20)

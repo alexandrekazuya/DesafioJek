@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Restaurant, Table, Reservation
+from .models import *
 
 class createReservationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -14,4 +14,4 @@ class getReservationSerializer(serializers.ModelSerializer):
 class getAllReservationsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Reservation
-        fields = ['name', 'table', 'date']
+        fields = ['id', 'name', 'table', 'date']
