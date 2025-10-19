@@ -1,0 +1,18 @@
+.tables{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    
+    gap:20px
+}
+
+.tables hr{
+    width: 300px;
+}
+
+.delete-input{
+    padding: 3px 6px;
+    width: 20px;
+    margin-right: 10px;
+}

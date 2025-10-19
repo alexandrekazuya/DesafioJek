@@ -7,8 +7,9 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.authentication import TokenAuthentication
+from django.utils.dateparse import parse_date
 
-def getTable(restaurant,guestsNr):
+def getTable(restaurant,guestsNr):        
     returnTables = []
     tables = Table.objects.filter(restaurant=restaurant, occupied=False).order_by('-maxSeats')
     seats_needed = guestsNr
@@ -24,24 +25,23 @@ def getTable(restaurant,guestsNr):
         table.save()
     return returnTables
 
-# Create your views here.
 @api_view(['GET', 'POST'])
 def list_or_create_reservation(request):
 
     if request.method == 'GET':
         reservations = Reservation.objects.all()
-        serealizer = getAllReservationsSerializer(reservations, many=True)
+        serealizer = getReservationSerializer(reservations, many=True)
         return Response(serealizer.data) 
 
-
     if request.method == 'POST':
-        tables = getTable(request.data['restaurant'], request.data['guestsNr'])
+        guestsNr = int(request.data.get('guestsNr'))
+        tables = getTable(request.data['restaurant'], guestsNr)
         if tables == None:
             return Response({"message": "no tables gang"}, status=400)
         
         for table in tables: #checkar se a mesa ja ta ocupada
             if(Reservation.objects.filter(table=table, date=request.data['date']).exists()):
-                return Response({"message": "table already booked at this time"}, status=400)
+                return Response({"message": "table ta ocupada"}, status=400)
             
         request.data['table'] = []
         for table in tables:
@@ -55,15 +55,8 @@ def list_or_create_reservation(request):
         return Response({"message": "reservado successfully"}, status=201)
 
 #--so admin --
-@api_view(['GET', 'DELETE'])
-def get_or_delete_reservation(request, id):
-
-    if request.method == 'GET':
-        reservation = get_object_or_404(Reservation, id=id)
-        serializer = getReservationSerializer(reservation)
-        return Response(serializer.data)
-    
-
+@api_view(['DELETE'])
+def delete_reservation(request, id):
     if request.method == 'DELETE':
         reservation = get_object_or_404(Reservation, id=id)
         reservation_tables = reservation.table.all()
@@ -73,8 +66,61 @@ def get_or_delete_reservation(request, id):
         reservation.delete()
         return Response({"message": "deleted successfully"})
 
+@api_view(['GET'])
+def get_daily_summary(request, date):
+    parsed_date = parse_date(date)
+    if not parsed_date:
+        return Response({"message": "Invalid date format. Use YYYY-MM-DD."}, status=400)
 
- #--login-   
+    reservations = Reservation.objects.filter(date__date=parsed_date)
+
+    total_guests = sum(r.guestsNr for r in reservations)
+    total_reservations = reservations.count()
+
+    occupied_ids = set(reservations.values_list('table__id', flat=True))
+    all_ids = set(Table.objects.values_list('id', flat=True))
+    unoccupied_ids = sorted(all_ids - occupied_ids)
+
+    summary = {
+        "date": date,
+        "total_guests": total_guests,
+        "total_reservations": total_reservations,
+        "occupied_tables": sorted(occupied_ids),
+        "unoccupied_tables": unoccupied_ids,
+    }
+    return Response(summary)
+
+
+@api_view(['GET', 'POST'])
+def manage_tables(request):
+    if request.method == 'GET':
+        tables = Table.objects.all().values('id', 'occupied', 'maxSeats', 'restaurant')
+        return Response(list(tables))
+
+    else:
+        table = Table.objects.create(
+            occupied=False,
+            maxSeats=10,
+            restaurant_id=1
+        )
+
+        return Response({
+            'id': table.id,
+            'occupied': table.occupied,
+            'maxSeats': table.maxSeats,
+            'restaurant': table.restaurant.id
+        }, status=201)
+
+@api_view(['DELETE'])
+def delete_table(request, id):
+    reservation = Reservation.objects.filter(table__id=id)
+    if reservation.exists():
+        reservation.delete()
+    table = get_object_or_404(Table, id=id)
+    table.delete()
+    return Response({'message': f'Table {id} deleted successfully.'}, status=200)
+
+#--login-   
 @api_view(['POST'])
 def login_admin(request):
     username = request.data['name']

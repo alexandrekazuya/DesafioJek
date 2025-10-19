@@ -10,8 +10,3 @@ class getReservationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Reservation
         fields = '__all__' #em vez de meter todos um a um
-
-class getAllReservationsSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Reservation
-        fields = ['id', 'name', 'table', 'date']
