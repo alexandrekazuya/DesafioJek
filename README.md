@@ -1,6 +1,7 @@
 # read me gang
 boas ulisses
 pa correr esta shit faz isso
+o jason vai na pasta do backend
 
 ## frontend:
 cd frontend
